@@ -4,6 +4,10 @@ if VECTOR_DB == "milvus":
     from open_webui.apps.retrieval.vector.dbs.milvus import MilvusClient
 
     VECTOR_DB_CLIENT = MilvusClient()
+elif VECTOR_DB == "qdrant":
+    from open_webui.apps.retrieval.vector.dbs.qdrant import QdrantClient
+
+    VECTOR_DB_CLIENT = QdrantClient()
 elif VECTOR_DB == "azure-search":
     from open_webui.apps.retrieval.vector.dbs.azure_search import AzureSearchClient
 

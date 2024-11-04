@@ -275,6 +275,8 @@ class AzureSearchClient:
             self._create_index(dimension)
         
         self.load_search_client()
+        # log.debug("ITEMS")
+        # log.debug(items)
         documents = [
             {
                 "id": item["id"],  # Unique ID of the document
@@ -289,7 +291,7 @@ class AzureSearchClient:
                     "hash": item["metadata"]["hash"],  # Hash of the document
                     "name": item["metadata"]["name"],  # Name of the document
                     "page": item["metadata"]["page"] if "page" in item["metadata"] else 0,  # Page number
-                    "source": item["metadata"]["source"] if "source" in item["metadata"] else item["metadata"]["path"],  # File source path
+                    "source": item["metadata"].get("source", None),  # File source path
                     "start_index": item["metadata"]["start_index"]  # Start index of the chunk in the document
                 }
             }
