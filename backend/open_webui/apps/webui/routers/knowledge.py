@@ -190,9 +190,6 @@ def add_file_to_knowledge_by_id(
 
     # Add content to the vector database
     try:
-        log.info("KNOWLEDGE FILE")
-        log.info(form_data.file_id)
-        log.info(id)
         process_file(ProcessFileForm(file_id=form_data.file_id, collection_name=id))
     except Exception as e:
         log.debug(e)

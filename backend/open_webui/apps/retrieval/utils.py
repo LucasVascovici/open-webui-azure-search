@@ -334,9 +334,6 @@ def extract_relevant_contexts_single_collection(
                 }
                 relevant_contexts.append(context)
             else:
-                log.debug("FILE")
-                log.debug(file)
-
                 if file["type"] == "collection":
                     collections.append(file["id"])
                     file_ids.extend([file_id for file_id in file["data"]["file_ids"]])
@@ -356,17 +353,11 @@ def extract_relevant_contexts_single_collection(
 
         except Exception as e:
             log.exception(e)
-    
-    # files = Files.get_files_by_ids(file_ids)
-    # log.debug("LIST OF FILES")
-    # log.debug(Files.get_files())
-    # log.debug(file_ids)
-    # log.debug(files)
 
     try:
-        rewritten_queries = VECTOR_DB_CLIENT.rewrite_query(messages)
+        subqueries = VECTOR_DB_CLIENT.generate_subqueries(messages)
         search_results = VECTOR_DB_CLIENT.compute_rrf(
-            rewritten_queries,
+            subqueries,
             collections,
             file_ids,
             k

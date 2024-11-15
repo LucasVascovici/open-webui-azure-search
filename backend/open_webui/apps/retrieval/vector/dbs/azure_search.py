@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Optional
+from textwrap import dedent
 from collections import defaultdict
 
 from openai import AzureOpenAI
@@ -275,8 +276,6 @@ class AzureSearchClient:
             self._create_index(dimension)
         
         self.load_search_client()
-        # log.debug("ITEMS")
-        # log.debug(items)
         documents = [
             {
                 "id": item["id"],  # Unique ID of the document
@@ -327,36 +326,43 @@ class AzureSearchClient:
     def reset(self):
         # Resets the service. This will delete all indexes and item entries.
         self.index_client.delete_index(AZURE_SEARCH_INDEX_NAME)
+    
+    def generate_subqueries(self, messages: list[dict], num_subqueries=3):
+        user_query = messages[-1]["content"]
+        output_format = '{"queries": ["subquery1", "subquery2", "subquery3"]}'
+        prompt = dedent(f"""
+            Generate {num_subqueries} different sub-queries that expand on the following user query, considering the context below if any, to help retrieve more relevant and broader results.
 
-    def rewrite_query(self, messages: list[dict]):
-        messages = [
-            message["content"]
-            for message in messages[-10:]
-        ]
+            User Query: "{user_query}"
 
-        query = messages.pop()
-        conversation_history = '\n'.join(messages)
+            The sub-queries should cover different aspects related to the user query.
+
+            Provide the sub-queries in a JSON array format, like {output_format}.
+        """).strip()
+
+        context = messages[:-1] + [{"role": "user", "content": prompt}]
+        
         response = self.chat_client.chat.completions.create(
             model="gpt-4o",
             response_format={ "type": "json_object" },
-            messages=[
-                {"role": "system", "content": REWRITE_PROMPT},
-                {"role": "user", "content": f"Conversation history: {conversation_history}"},
-                {"role": "user", "content": f"Input: {query}"}
-            ],
-            temperature=0
+            messages=context,
+            max_tokens=200,
+            temperature=0,
+            seed=123
         )
+        generated_text = response.choices[0].message.content
         try:
-            return json.loads(response.choices[0].message.content)
-        except json.JSONDecodeError as e:
-            print("JSON decoding error:", e)
-            raise
+            subqueries = json.loads(generated_text)
+        except json.JSONDecodeError:
+            # If parsing fails, fallback to using the original query
+            subqueries = {"queries" : [user_query]}
+        return subqueries
 
-    def compute_rrf(self, rewritten_queries: list[str], collections: list[str], file_ids: list[str], limit: int):
+    def compute_rrf(self, subqueries: list[str], collections: list[str], file_ids: list[str], limit: int):
         # Store results per query
         results_per_query = []
         
-        for query in rewritten_queries['queries']:
+        for query in subqueries['queries']:
             results = self.hybrid_search(query, collections, file_ids, limit)
             results_list = list(results)
             results_per_query.append(results_list)
