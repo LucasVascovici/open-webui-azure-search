@@ -80,24 +80,24 @@ class AzureSearchClient:
         search_results = {}
 
         for result in results:
-            collection = result.get("metadata").get("file_id")
-            if collection not in search_results:
-                search_results[collection] = defaultdict(list)
+            file_id = result.get("metadata").get("file_id")
+            if file_id not in search_results:
+                search_results[file_id] = defaultdict(list)
 
-            collection_results = search_results[collection]
+            collection_results = search_results[file_id]
             collection_results["ids"].append(result.get("id"))
             collection_results["distances"].append(result.get("rrf_score"))
             collection_results["documents"].append(result.get("chunk"))
             collection_results["metadatas"].append(result.get("metadata"))
 
         search_results = {
-            collection: SearchResult(
+            file_id: SearchResult(
                 ids=[collection_results["ids"]],
                 distances=[collection_results["distances"]],
                 documents=[collection_results["documents"]],
                 metadatas=[collection_results["metadatas"]],
             )
-            for collection, collection_results in search_results.items()
+            for file_id, collection_results in search_results.items()
         }
 
         return search_results
@@ -216,7 +216,10 @@ class AzureSearchClient:
         # Search for the nearest neighbor items based on the vectors and return 'limit' number of results.
         self.load_search_client()
 
-        filter_query = f"not search.in(collection, '{','.join(collections)}') and search.in(metadata/file_id, '{','.join(file_ids)}')"
+        # filter_query = f"not search.in(collection, '{','.join(collections)}') and search.in(metadata/file_id, '{','.join(file_ids)}')"
+        filter_query = f"search.in(collection, '{','.join(collections)}')"
+        log.debug("FILTER_QUERY")
+        log.debug(filter_query)
         results = self.search_client.search(
             search_text=query,
             query_type="semantic",

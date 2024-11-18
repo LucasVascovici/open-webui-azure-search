@@ -323,7 +323,9 @@ def extract_relevant_contexts_single_collection(
     collections = []
     file_ids = []
     relevant_contexts = []
-    files_mapping = {}
+
+    log.debug("FILES")
+    log.debug(files)
 
     for file in files:
         try:
@@ -336,23 +338,17 @@ def extract_relevant_contexts_single_collection(
             else:
                 if file["type"] == "collection":
                     collections.append(file["id"])
-                    file_ids.extend([file_id for file_id in file["data"]["file_ids"]])
-
-                    files_mapping.update({
-                        file_id: file
-                        for file_id in file["data"]["file_ids"]
-                    })
                 
                 elif file["type"] == "file":
                     collections.append(f"file-{file['id']}")
-                    file_ids.append(file["id"])
-
-                    files_mapping.update({
-                        file["id"]: file
-                    })
 
         except Exception as e:
             log.exception(e)
+    
+    log.debug("COLLECTIONS")
+    log.debug(collections)
+    log.debug("FILE_IDS")
+    log.debug(file_ids)
 
     try:
         subqueries = VECTOR_DB_CLIENT.generate_subqueries(messages)
@@ -362,14 +358,18 @@ def extract_relevant_contexts_single_collection(
             file_ids,
             k
         )
+        log.debug("SEARCH_RESULTS")
+        log.debug(search_results)
 
     except Exception as e:
         log.exception(e)
 
     relevant_contexts = [
-        {**context.model_dump(), "file": files_mapping[collection]}
-        for collection, context in search_results.items()
+        {**context.model_dump(), "file": {"id": file_id}}
+        for file_id, context in search_results.items()
     ]
+    log.debug("RELEVANT_CONTEXTS")
+    log.debug(relevant_contexts)
 
     return relevant_contexts
 
